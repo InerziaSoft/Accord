@@ -5,7 +5,7 @@
 //  Created by Alessio Moiso on 01.12.20.
 //
 
-enum DataAction {
+public enum DataAction {
   
   case insert,
        update,

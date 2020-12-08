@@ -1,13 +1,22 @@
 import XCTest
 @testable import Accord
 
-final class AccordTests: XCTestCase {
-//    func testExample() {
-//        // This is an example of a functional test case.
-//        // Use XCTAssert and related functions to verify your tests produce the correct
-//        // results.
-//        XCTAssertEqual(Accord().text, "Hello, World!")
-//    }
+final class AccordDataManagerTests: XCTestCase {
+  
+  func testInit() {
+    // GIVEN
+    let scheduler = RunnablesSchedulerMock()
+    
+    // WHEN
+    let dataManager = AccordDataManager(scheduler: scheduler)
+    
+    // THEN
+    XCTAssertNotNil(dataManager.scheduler)
+  }
+  
+  func testRegisterEntities() {
+    
+  }
 
 //    static var allTests = [
 ////        ("testExample", testExample),

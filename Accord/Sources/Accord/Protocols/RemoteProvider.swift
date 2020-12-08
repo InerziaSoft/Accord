@@ -7,7 +7,7 @@
 
 import RxSwift
 
-protocol RemoteProvider {
+public protocol RemoteProvider {
   
   func observeObjects<T: AccordableContent>() -> Observable<[T]>
   

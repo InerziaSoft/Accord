@@ -7,12 +7,12 @@
 
 import RxSwift
 
-protocol LocalStorage {
+public protocol LocalStorage {
   
-  func observeObjects<T: AccordableContent>() -> Observable<[T]>
+  func observeObjects<T: AccordableContent>(ofType type: T.Type) -> Observable<[T]>
   
-  func refreshFromRemote<T: AccordableContent>(withContent content: [T]) -> Completable
+  func refreshFromRemote<T: AccordableContent>(withContent content: [T], ofType type: T.Type) -> Completable
   
-  func performAction<T: AccordableContent>(withContent content: T, action: DataAction) -> Completable
+  func perform<T: AccordableContent>(action: DataAction, withContent content: T, ofType type: T.Type) -> Completable
   
 }

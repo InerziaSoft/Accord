@@ -5,10 +5,14 @@
 //  Created by Alessio Moiso on 02.12.20.
 //
 
-import Foundation
+import RxSwift
 
-protocol Runnable: Identifiable {
+public typealias RunnableRepresentation = [String: Any]
+
+public protocol Runnable: Identifiable {
   
-  func run()
+  func run() -> Completable
+  
+  func toRepresentation() -> RunnableRepresentation
   
 }

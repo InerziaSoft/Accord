@@ -7,7 +7,7 @@
 
 import RxSwift
 
-protocol DataManagerType {
+public protocol DataManagerType {
   
   func register<T: AccordableEntity>(entity: T)
   

@@ -5,8 +5,8 @@
 //  Created by Alessio Moiso on 30.11.20.
 //
 
-public protocol Identifiable {
+public protocol RunnablesScheduler {
   
-  var id: String { get }
+  func schedule(runnable: Runnable)
   
 }

@@ -15,9 +15,9 @@ let package = Package(
     targets: [
         .target(
             name: "Accord",
-            dependencies: ["RxSwift"]),
+          dependencies: ["RxSwift", .product(name: "RxRelay", package: "RxSwift")]),
         .testTarget(
             name: "AccordTests",
-            dependencies: ["Accord"]),
+            dependencies: ["Accord", .product(name: "RxBlocking", package: "RxSwift")]),
     ]
 )

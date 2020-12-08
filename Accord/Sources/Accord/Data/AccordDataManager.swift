@@ -8,50 +8,51 @@
 import Foundation
 import RxSwift
 
-enum AccordDataManagerError: Error {
-  case deallocatedInstance
-  case unknownEntity
-}
-
-class AccordDataManager: DataManagerType {
+public class AccordDataManager: DataManagerType {
+  
+  enum Errors: Error {
+    case deallocatedInstance
+    case unknownEntity
+  }
   
   private lazy var entitiesScheduler = SerialDispatchQueueScheduler(queue: entitiesQueue, internalSerialQueueName: Constants.entitiesRxQueueName)
   private let entitiesQueue = DispatchQueue(label: Constants.entitiesQueueName)
-  private var entities = [String: AccordableEntity]()
   
-  private let scheduler: Scheduler
+  public private(set) var entities = [String: AccordableEntity]()
   
-  init(scheduler: Scheduler) {
+  let scheduler: RunnablesScheduler
+  
+  init(scheduler: RunnablesScheduler) {
     self.scheduler = scheduler
   }
   
-  func register<T>(entity: T) where T : AccordableEntity {
+  public func register<T>(entity: T) where T : AccordableEntity {
     entitiesQueue.sync {
       entities[entity.id] = entity
     }
   }
   
-  func add<T>(object: T, toEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
+  public func add<T>(object: T, toEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
-      .flatMapCompletable { [weak self] in self?.operation(onEntity: $0, withContent: object) ?? .error(AccordDataManagerError.deallocatedInstance) }
+      .flatMapCompletable { [weak self] in self?.action(.insert, onEntity: $0, withContent: object) ?? .error(Errors.deallocatedInstance) }
   }
   
-  func update<T>(object: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
+  public func update<T>(object: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
-      .flatMapCompletable { [weak self] in self?.operation(onEntity: $0, withContent: object) ?? .error(AccordDataManagerError.deallocatedInstance) }
+      .flatMapCompletable { [weak self] in self?.action(.update, onEntity: $0, withContent: object) ?? .error(Errors.deallocatedInstance) }
   }
   
-  func remove<T>(object: T, fromEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
+  public func remove<T>(object: T, fromEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
-      .flatMapCompletable { [weak self] in self?.operation(onEntity: $0, withContent: object) ?? .error(AccordDataManagerError.deallocatedInstance) }
+      .flatMapCompletable { [weak self] in self?.action(.delete, onEntity: $0, withContent: object) ?? .error(Errors.deallocatedInstance) }
   }
   
-  func observeObjects<T>(forContentType accordableContent: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]> where T : AccordableContent {
+  public func observeObjects<T>(forContentType accordableContent: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]> where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
       .asObservable()
       .flatMap { [weak self] (entity: AccordableEntity) -> Observable<[T]> in
         guard let self = self else { return .empty() }
-        return self.observe(entity: entity) as Observable<[T]>
+        return self.observe(entity: entity, forObjectsOfType: type(of: accordableContent)) as Observable<[T]>
       }
   }
     
@@ -60,22 +61,26 @@ class AccordDataManager: DataManagerType {
 private extension AccordDataManager {
   func entity(forEntityDescriptor entityDescriptor: AccordableEntityDescriptor) -> Single<AccordableEntity> {
     Single.deferred { [weak self] in
-      guard let self = self else { return .error(AccordDataManagerError.deallocatedInstance) }
+      guard let self = self else { return .error(Errors.deallocatedInstance) }
       if let entity = self.entities[entityDescriptor.id] {
-        return .just(entity)
+        var single = Single.just(entity)
+        if let scheduler = entity.scheduler {
+          single = single.observeOn(scheduler)
+        }
+        return single
       }
-      return .error(AccordDataManagerError.unknownEntity)
+      return .error(Errors.unknownEntity)
     }
     .subscribeOn(entitiesScheduler)
   }
   
-  func operation<T: AccordableContent>(onEntity entity: AccordableEntity, withContent object: T) -> Completable {
+  func action<T: AccordableContent>(_ action: DataAction, onEntity entity: AccordableEntity, withContent object: T) -> Completable {
     Completable.deferred {
-      var action = entity.localStorage.performAction(withContent: object, action: .insert)
+      var action = entity.dataStorage.perform(action: action, withContent: object, ofType: type(of: object))
       
       if let remoteProviderAction = entity.remoteProvider?.performAction(withContent: object, action: .insert) {
         action = action.andThen(remoteProviderAction)
-          .do(onSuccess: { [weak self] in self?.scheduler.schedule(operation: $0) })
+          .do(onSuccess: { [weak self] in self?.scheduler.schedule(runnable: $0) })
           .asCompletable()
       }
       
@@ -83,9 +88,9 @@ private extension AccordDataManager {
     }
   }
   
-  func observe<T: AccordableContent>(entity: AccordableEntity) -> Observable<[T]> {
+  func observe<T: AccordableContent>(entity: AccordableEntity, forObjectsOfType type: T.Type) -> Observable<[T]> {
     Observable.create { observer in
-      let localStorageObservable: Observable<[T]> = entity.localStorage.observeObjects()
+      let localStorageObservable: Observable<[T]> = entity.dataStorage.observeObjects(ofType: type)
       let remoteProviderObservable: Observable<[T]>? = entity.remoteProvider?.observeObjects()
       
       let localSubscription = localStorageObservable
@@ -94,7 +99,7 @@ private extension AccordDataManager {
       var remoteSubscription: Disposable? = nil
       if let remoteProviderObservable = remoteProviderObservable {
         remoteSubscription = remoteProviderObservable
-          .flatMap { entity.localStorage.refreshFromRemote(withContent: $0).asObservable() }
+          .flatMap { entity.dataStorage.refreshFromRemote(withContent: $0, ofType: type).asObservable() }
           .subscribe()
       }
       
