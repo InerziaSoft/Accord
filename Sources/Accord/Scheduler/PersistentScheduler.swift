@@ -32,7 +32,7 @@ import RxRelay
 public class PersistentScheduler: RunnablesScheduler {
   
   /// Describe the configuration of a `PersistentScheduler`.
-  struct Configuration {
+  public struct Configuration {
     /// Get the maximum number of runnables that
     /// can run at the same time.
     ///
