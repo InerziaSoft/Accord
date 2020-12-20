@@ -72,7 +72,7 @@ public class PersistentScheduler: RunnablesScheduler {
   ///   - configuration: The scheduler configuration.
   ///   - storage: The runnables storage.
   ///   - retryPolicy: The retry policy evaluator for runnables.
-  init(configuration: Configuration, storage: SchedulerStorageType, retryPolicy: RetryPolicyEvaluator) {
+  public init(configuration: Configuration, storage: SchedulerStorageType, retryPolicy: RetryPolicyEvaluator) {
     self.configuration = configuration
     self.storage = storage
     self.retryPolicy = retryPolicy

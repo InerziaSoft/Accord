@@ -30,7 +30,7 @@ public class FileSchedulerStorage: SchedulerStorageType {
   private let fileURL: URL
   private let runnableFactory: RunnableFactoryType
   
-  init(fileURL: URL, runnableFactory: RunnableFactoryType) {
+  public init(fileURL: URL, runnableFactory: RunnableFactoryType) {
     self.fileURL = fileURL
     self.runnableFactory = runnableFactory
   }
