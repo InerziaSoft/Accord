@@ -45,6 +45,16 @@ public class PersistentScheduler: RunnablesScheduler {
     /// The persistent scheduler will wait for other runnables
     /// for this time interval.
     public let bufferPeriod: RxTimeInterval
+    
+    /// Initialize a new configuration.
+    ///
+    /// - parameters:
+    ///   - maxConcurrentRunnables: The maximum number of runnables that can run at the same time.
+    ///   - bufferPeriod: The amount of time that should be waited before executing a newly scheduled runnable.
+    public init(maxConcurrentRunnables: Int, bufferPeriod: RxTimeInterval) {
+      self.maxConcurrentRunnables = maxConcurrentRunnables
+      self.bufferPeriod = bufferPeriod
+    }
   }
   
   /// Get the queue reserved for this scheduler.
