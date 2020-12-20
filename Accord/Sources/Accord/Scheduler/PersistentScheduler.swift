@@ -56,15 +56,15 @@ public class PersistentScheduler: RunnablesScheduler {
   private let runnables = PublishSubject<Runnable>()
   
   /// Get the runnables storage.
-  private let storage: SchedulerStorageType
+  let storage: SchedulerStorageType
   /// Get the retry policy evaluator.
-  private let retryPolicy: RetryPolicyEvaluator
+  let retryPolicy: RetryPolicyEvaluator
   
   /// Get the dispose bag.
   private let disposeBag = DisposeBag()
   
   /// Get the configuration.
-  private let configuration: Configuration
+  let configuration: Configuration
   
   /// Initialize a new scheduler.
   ///
