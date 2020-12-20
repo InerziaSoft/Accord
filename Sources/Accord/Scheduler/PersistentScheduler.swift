@@ -38,13 +38,13 @@ public class PersistentScheduler: RunnablesScheduler {
     ///
     /// The persistent scheduler will wait for other runnables
     /// until this count is reached.
-    let maxConcurrentRunnables: Int
+    public let maxConcurrentRunnables: Int
     /// Get the amount of time that should be waited before
     /// executing a newly scheduled runnable.
     ///
     /// The persistent scheduler will wait for other runnables
     /// for this time interval.
-    let bufferPeriod: RxTimeInterval
+    public let bufferPeriod: RxTimeInterval
   }
   
   /// Get the queue reserved for this scheduler.
