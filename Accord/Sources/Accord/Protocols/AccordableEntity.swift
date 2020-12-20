@@ -15,9 +15,6 @@ import RxSwift
 /// an entity of Core Data.
 public protocol AccordableEntity: Identifiable {
   
-  /// Get the type of objects that this entity stores.
-  var contentType: AccordableContent.Type { get }
-  
   /// Get an object responsible of storing this entity locally.
   ///
   /// This can be a database, a file manager or whatever logic you

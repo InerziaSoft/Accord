@@ -17,13 +17,17 @@ class LocalStorageMock: LocalStorage {
   
   private let content = BehaviorRelay<[ContentMock]>(value: [])
   
+  func currentContent() -> [ContentMock] {
+    content.value
+  }
+  
   func observeObjects<T>(ofType type: T.Type) -> Observable<[T]> where T : AccordableContent {
     guard let _ = type as? ContentMock.Type else { return .error(Errors.invalidType) }
     
     return content.asObservable() as! Observable<[T]>
   }
   
-  func refreshFromRemote<T>(withContent content: [T], ofType type: T.Type) -> Completable where T : AccordableContent {
+  func refreshFromRemote<T>(withContent content: [T]) -> Completable where T : AccordableContent {
     guard let content = content as? [ContentMock] else { return .error(Errors.invalidType) }
     
     return .deferred { [weak self] in
@@ -33,7 +37,7 @@ class LocalStorageMock: LocalStorage {
     }
   }
   
-  func perform<T>(action: DataAction, withContent content: T, ofType type: T.Type) -> Completable where T : AccordableContent {
+  func perform<T>(action: DataAction, withContent content: T) -> Completable where T : AccordableContent {
     guard let content = content as? ContentMock else { return .error(Errors.invalidType) }
     
     return self.content

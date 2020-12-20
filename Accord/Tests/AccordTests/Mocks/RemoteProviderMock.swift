@@ -5,24 +5,80 @@
 //  Created by Alessio Moiso on 07.12.20.
 //
 
+import Foundation
 import Accord
 import RxSwift
 import RxRelay
 
 class RemoteProviderMock: RemoteProvider {
   
-  private let content = BehaviorRelay<[ContentMock]>(value: [])
+  enum Errors: Error {
+    case invalidType
+  }
+  
+  private let contentRelay = BehaviorRelay<[ContentMock]>(value: [])
   
   func inject(content: ContentMock) {
-    self.content.accept(self.content.value + [content])
+    contentRelay.accept(contentRelay.value + [content])
   }
   
   func observeObjects<T>() -> Observable<[T]> where T : AccordableContent {
-    content as! Observable<[T]>
+    contentRelay.asObservable() as! Observable<[T]>
   }
   
   func performAction<T>(withContent content: T, action: DataAction) -> Single<Runnable> where T : AccordableContent {
+    guard let content = content as? ContentMock else { return .error(Errors.invalidType) }
     
+    switch action {
+    case .insert:
+      return self.contentRelay
+        .take(1).asSingle()
+        .map { $0 + [content] }
+        .map { [contentRelay] in RemoteProviderRunnableMock(relay: contentRelay, newContent: $0) }
+    case .delete:
+      return self.contentRelay
+        .take(1).asSingle()
+        .map { array -> [ContentMock] in
+          var newContent = array
+          newContent.removeAll(where: { $0.id == content.id })
+          return newContent
+        }
+        .map { [contentRelay] in RemoteProviderRunnableMock(relay: contentRelay, newContent: $0) }
+    case .update:
+      return self.contentRelay
+        .take(1).asSingle()
+        .map { array -> [ContentMock] in
+          var newContent = array
+          guard let index = newContent.firstIndex(where: { $0.id == content.id }) else { return newContent }
+          newContent.replaceSubrange(index..<index+1, with: [content])
+          return newContent
+        }
+        .map { [contentRelay] in RemoteProviderRunnableMock(relay: contentRelay, newContent: $0) }
+    }
+  }
+  
+}
+
+struct RemoteProviderRunnableMock: Runnable {
+  
+  let id = UUID().uuidString
+  private let relay: BehaviorRelay<[ContentMock]>?
+  private let newContent: [ContentMock]
+  
+  init(relay: BehaviorRelay<[ContentMock]>, newContent: [ContentMock]) {
+    self.relay = relay
+    self.newContent = newContent
+  }
+  
+  func run() -> Completable {
+    .deferred { [relay, newContent] in
+      relay?.accept(newContent)
+      return .empty()
+    }
+  }
+  
+  func toRepresentation() -> RunnableRepresentation {
+    ["content": try! JSONEncoder().encode(newContent)]
   }
   
 }

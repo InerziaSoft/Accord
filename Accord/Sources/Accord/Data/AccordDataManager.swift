@@ -32,6 +32,15 @@ public class AccordDataManager: DataManagerType {
     }
   }
   
+  public func observeObjects<T>(forContentType accordableContent: T.Type, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]> where T : AccordableContent {
+    entity(forEntityDescriptor: entityDescriptor)
+      .asObservable()
+      .flatMap { [weak self] (entity: AccordableEntity) -> Observable<[T]> in
+        guard let self = self else { return .empty() }
+        return self.observe(entity: entity, forObjectsOfType: accordableContent) as Observable<[T]>
+      }
+  }
+  
   public func add<T>(object: T, toEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
       .flatMapCompletable { [weak self] in self?.action(.insert, onEntity: $0, withContent: object) ?? .error(Errors.deallocatedInstance) }
@@ -45,15 +54,6 @@ public class AccordDataManager: DataManagerType {
   public func remove<T>(object: T, fromEntity entityDescriptor: AccordableEntityDescriptor) -> Completable where T : AccordableContent {
     entity(forEntityDescriptor: entityDescriptor)
       .flatMapCompletable { [weak self] in self?.action(.delete, onEntity: $0, withContent: object) ?? .error(Errors.deallocatedInstance) }
-  }
-  
-  public func observeObjects<T>(forContentType accordableContent: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]> where T : AccordableContent {
-    entity(forEntityDescriptor: entityDescriptor)
-      .asObservable()
-      .flatMap { [weak self] (entity: AccordableEntity) -> Observable<[T]> in
-        guard let self = self else { return .empty() }
-        return self.observe(entity: entity, forObjectsOfType: type(of: accordableContent)) as Observable<[T]>
-      }
   }
     
 }
@@ -76,7 +76,7 @@ private extension AccordDataManager {
   
   func action<T: AccordableContent>(_ action: DataAction, onEntity entity: AccordableEntity, withContent object: T) -> Completable {
     Completable.deferred {
-      var action = entity.dataStorage.perform(action: action, withContent: object, ofType: type(of: object))
+      var action = entity.dataStorage.perform(action: action, withContent: object)
       
       if let remoteProviderAction = entity.remoteProvider?.performAction(withContent: object, action: .insert) {
         action = action.andThen(remoteProviderAction)
@@ -99,7 +99,7 @@ private extension AccordDataManager {
       var remoteSubscription: Disposable? = nil
       if let remoteProviderObservable = remoteProviderObservable {
         remoteSubscription = remoteProviderObservable
-          .flatMap { entity.dataStorage.refreshFromRemote(withContent: $0, ofType: type).asObservable() }
+          .flatMap { entity.dataStorage.refreshFromRemote(withContent: $0).asObservable() }
           .subscribe()
       }
       

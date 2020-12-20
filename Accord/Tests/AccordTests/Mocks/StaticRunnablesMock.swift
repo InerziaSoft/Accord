@@ -7,7 +7,7 @@
 
 import Accord
 
-class RunnablesSchedulerMock: RunnablesScheduler {
+class StaticRunnablesMock: RunnablesScheduler {
   
   private(set) var runnables = [Runnable]()
   

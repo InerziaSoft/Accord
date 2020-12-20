@@ -17,6 +17,6 @@ public protocol DataManagerType {
   
   func remove<T: AccordableContent>(object: T, fromEntity entityDescriptor: AccordableEntityDescriptor) -> Completable
   
-  func observeObjects<T: AccordableContent>(forContentType accordableContent: T, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]>
+  func observeObjects<T: AccordableContent>(forContentType accordableContent: T.Type, inEntity entityDescriptor: AccordableEntityDescriptor) -> Observable<[T]>
   
 }

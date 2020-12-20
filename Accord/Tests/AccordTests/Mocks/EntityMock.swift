@@ -10,14 +10,20 @@ import RxSwift
 
 class EntityMock: AccordableEntity {
   
-  var id = "entityMock"
+  static let identifier = "EntityMock"
   
-  var contentType: AccordableContent.Type
+  let id: String
   
-  var dataStorage: LocalStorage
+  let dataStorage: LocalStorage
   
-  var remoteProvider: RemoteProvider?
+  let remoteProvider: RemoteProvider?
   
-  var scheduler: SchedulerType?
+  let scheduler: SchedulerType? = MainScheduler.instance
+  
+  init(dataStorage: LocalStorage, remoteProvider: RemoteProvider?) {
+    self.id = Self.identifier
+    self.dataStorage = dataStorage
+    self.remoteProvider = remoteProvider
+  }
   
 }
