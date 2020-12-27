@@ -7,9 +7,9 @@
 
 import RxSwift
 
-class DataChangeCalculator: ChangeCalculator {
+public class DataChangeCalculator: ChangeCalculator {
   
-  func compute<T>(change: Change<T>, in entity: AccordableEntity) -> Completable where T : AccordableContent {
+  public func compute<T>(change: Change<T>, in entity: AccordableEntity) -> Completable where T : AccordableContent {
     switch change.changeType {
     case .sync:
       guard let content = change.current else { return .empty() }
