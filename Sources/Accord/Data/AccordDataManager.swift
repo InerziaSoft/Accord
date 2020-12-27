@@ -42,12 +42,16 @@ public class AccordDataManager: DataManagerType {
   /// Get the runnables scheduler.
   let scheduler: RunnablesScheduler
   
+  /// Get the change calculator.
+  let changeCalculator: ChangeCalculator
+  
   /// Initialize a new instance.
   ///
   /// - parameters:
   ///   - scheduler: A scheduler.
-  public init(scheduler: RunnablesScheduler) {
+  public init(scheduler: RunnablesScheduler, changeCalculator: ChangeCalculator) {
     self.scheduler = scheduler
+    self.changeCalculator = changeCalculator
   }
   
   /// Register the new entity.
@@ -175,9 +179,9 @@ private extension AccordDataManager {
   ///   - type: The expected type of the objects.
   /// - returns: An Observable that emits new values when something changes in the specified entity.
   func observe<T: AccordableContent>(entity: AccordableEntity, forObjectsOfType type: T.Type) -> Observable<[T]> {
-    Observable.create { observer in
+    Observable.create { [changeCalculator] observer in
       let localStorageObservable: Observable<[T]> = entity.dataStorage.observeObjects(ofType: type)
-      let remoteProviderObservable: Observable<[T]>? = entity.remoteProvider?.observeObjects()
+      let remoteProviderObservable: Observable<Change<T>>? = entity.remoteProvider?.observeObjects()
       
       let localSubscription = localStorageObservable
         .subscribe(onNext: observer.onNext, onError: observer.onError)
@@ -185,7 +189,7 @@ private extension AccordDataManager {
       var remoteSubscription: Disposable? = nil
       if let remoteProviderObservable = remoteProviderObservable {
         remoteSubscription = remoteProviderObservable
-          .flatMap { entity.dataStorage.refreshFromRemote(withContent: $0).asObservable() }
+          .flatMap { changeCalculator.compute(change: $0, in: entity) }
           .subscribe()
       }
       

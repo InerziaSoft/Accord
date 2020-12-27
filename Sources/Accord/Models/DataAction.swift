@@ -9,6 +9,7 @@ public enum DataAction {
   
   case insert,
        update,
-       delete
+       delete,
+       sync
   
 }

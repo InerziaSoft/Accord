@@ -9,7 +9,7 @@ import RxSwift
 
 public protocol RemoteProvider {
   
-  func observeObjects<T: AccordableContent>() -> Observable<[T]>
+  func observeObjects<T: AccordableContent>() -> Observable<Change<T>>
   
   func performAction<T: AccordableContent>(withContent content: T, action: DataAction) -> Single<Runnable>
   

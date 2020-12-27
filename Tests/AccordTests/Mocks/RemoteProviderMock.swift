@@ -22,8 +22,8 @@ class RemoteProviderMock: RemoteProvider {
     contentRelay.accept(contentRelay.value + [content])
   }
   
-  func observeObjects<T>() -> Observable<[T]> where T : AccordableContent {
-    contentRelay.asObservable() as! Observable<[T]>
+  func observeObjects<T>() -> Observable<Change<T>> where T : AccordableContent {
+    .just(Change(current: nil, old: nil, changeType: .sync))
   }
   
   func performAction<T>(withContent content: T, action: DataAction) -> Single<Runnable> where T : AccordableContent {
@@ -54,6 +54,8 @@ class RemoteProviderMock: RemoteProvider {
           return newContent
         }
         .map { [contentRelay] in RemoteProviderRunnableMock(relay: contentRelay, newContent: $0) }
+    case .sync:
+      return .never()
     }
   }
   

@@ -27,16 +27,6 @@ class LocalStorageMock: LocalStorage {
     return content.asObservable() as! Observable<[T]>
   }
   
-  func refreshFromRemote<T>(withContent content: [T]) -> Completable where T : AccordableContent {
-    guard let content = content as? [ContentMock] else { return .error(Errors.invalidType) }
-    
-    return .deferred { [weak self] in
-      guard let self = self else { return .empty() }
-      self.content.accept(content)
-      return .empty()
-    }
-  }
-  
   func perform<T>(action: DataAction, withContent content: T) -> Completable where T : AccordableContent {
     guard let content = content as? ContentMock else { return .error(Errors.invalidType) }
     
@@ -46,7 +36,7 @@ class LocalStorageMock: LocalStorage {
         switch action {
         case .insert:
           return currentContent + [content]
-        case .update:
+        case .update, .sync:
           var newContent = currentContent
           newContent.removeAll(where: { $0.id == content.id })
           return newContent + [content]
