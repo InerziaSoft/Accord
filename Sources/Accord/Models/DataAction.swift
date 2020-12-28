@@ -5,7 +5,7 @@
 //  Created by Alessio Moiso on 01.12.20.
 //
 
-public enum DataAction {
+public enum DataAction: Int, Codable {
   
   case insert,
        update,
