@@ -9,7 +9,7 @@ import RxSwift
 
 public protocol DataManagerType {
   
-  func register<T: AccordableEntity>(entity: T)
+  func register<T: AccordableEntity, C: AccordableContent>(entity: T, for contentType: C.Type) -> Completable
   
   func add<T: AccordableContent>(object: T, toEntity entityDescriptor: AccordableEntityDescriptor) -> Completable
   

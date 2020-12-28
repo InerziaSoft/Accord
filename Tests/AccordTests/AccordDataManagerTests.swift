@@ -31,28 +31,10 @@ final class AccordDataManagerTests: XCTestCase {
     let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
     
     // WHEN
-    dataManager.register(entity: entity)
+    _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
     
     // THEN
     XCTAssertEqual(1, dataManager.entities.count)
-  }
-  
-  func testObserveUnexistingEntity() {
-    // GIVEN
-    let scheduler = StaticRunnablesMock()
-    let calculator = ChangeCalculatorMock()
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
-    
-    // WHEN
-    do {
-      _ = try dataManager.observeObjects(forContentType: ContentMock.self, inEntity: .init(id: EntityMock.identifier)).toBlocking().first()
-      XCTFail()
-    } catch {
-      if case AccordDataManager.Errors.unknownEntity = error {
-        return
-      }
-      XCTFail()
-    }
   }
   
   func testObserveObjectsAddingInLocalStorage() {
@@ -70,7 +52,7 @@ final class AccordDataManagerTests: XCTestCase {
     let newObject = ContentMock(id: newObjectId, stringProperty: "", intProperty: 0, boolProperty: false)
     
     // WHEN
-    dataManager.register(entity: entity)
+    _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
     
     dataManager.observeObjects(forContentType: ContentMock.self, inEntity: .init(id: EntityMock.identifier))
       .filter { $0.contains(where: { $0.id == newObjectId }) }
@@ -132,7 +114,7 @@ final class AccordDataManagerTests: XCTestCase {
     let newObject = ContentMock(id: newObjectId, stringProperty: "", intProperty: 0, boolProperty: false)
     
     // WHEN
-    dataManager.register(entity: entity)
+    _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
     
     dataManager.add(object: newObject, toEntity: .init(id: EntityMock.identifier))
       .subscribe(fulfilling: expectation)
@@ -162,7 +144,7 @@ final class AccordDataManagerTests: XCTestCase {
     let updatedObject = ContentMock(id: newObjectId, stringProperty: "", intProperty: 1, boolProperty: true)
     
     // WHEN
-    dataManager.register(entity: entity)
+    _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
     
     dataManager.add(object: newObject, toEntity: .init(id: EntityMock.identifier))
       .subscribe(fulfilling: expectationInsert)
@@ -194,7 +176,7 @@ final class AccordDataManagerTests: XCTestCase {
     let newObject = ContentMock(id: newObjectId, stringProperty: "", intProperty: 0, boolProperty: false)
     
     // WHEN
-    dataManager.register(entity: entity)
+    _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
     
     dataManager.add(object: newObject, toEntity: .init(id: EntityMock.identifier))
       .subscribe(fulfilling: expectationInsert)

@@ -15,22 +15,29 @@ class LocalStorageMock: LocalStorage {
     case invalidType
   }
   
-  private let content = BehaviorRelay<[ContentMock]>(value: [])
+  private let contentRelay = BehaviorRelay<[ContentMock]>(value: [])
   
   func currentContent() -> [ContentMock] {
-    content.value
+    contentRelay.value
+  }
+  
+  func syncFromRemote<T>(_ content: [T]) -> Completable where T : AccordableContent {
+    .deferred { [contentRelay] in
+      contentRelay.accept(content as! [ContentMock])
+      return .empty()
+    }
   }
   
   func observeObjects<T>(ofType type: T.Type) -> Observable<[T]> where T : AccordableContent {
     guard let _ = type as? ContentMock.Type else { return .error(Errors.invalidType) }
     
-    return content.asObservable() as! Observable<[T]>
+    return contentRelay.asObservable() as! Observable<[T]>
   }
   
   func perform<T>(action: DataAction, withContent content: T) -> Completable where T : AccordableContent {
     guard let content = content as? ContentMock else { return .error(Errors.invalidType) }
     
-    return self.content
+    return self.contentRelay
       .take(1).asSingle()
       .map { currentContent -> [ContentMock] in
         switch action {
@@ -46,7 +53,7 @@ class LocalStorageMock: LocalStorage {
           return newContent
         }
       }
-      .do(onSuccess: { [weak self] in self?.content.accept($0) })
+      .do(onSuccess: { [weak self] in self?.contentRelay.accept($0) })
       .asCompletable()
   }
   

@@ -7,6 +7,7 @@
 
 import Foundation
 import RxSwift
+import RxRelay
 
 /// The `AccordDataManager` is the main entry point to get,
 /// observe and make changes to accordable data types.
@@ -36,8 +37,13 @@ public class AccordDataManager: DataManagerType {
   /// Get the queue where entities can be queried safely.
   private let entitiesQueue = DispatchQueue(label: Constants.entitiesQueueName)
   
+  /// Get the relay that contains all the registered entities.
+  private let entitiesRelay = BehaviorRelay<[String: AccordableEntity]>(value: [:])
+  
   /// Get the registered entity associated with their IDs.
-  public private(set) var entities = [String: AccordableEntity]()
+  public var entities: [String: AccordableEntity] {
+    entitiesRelay.value
+  }
   
   /// Get the runnables scheduler.
   let scheduler: RunnablesScheduler
@@ -54,14 +60,30 @@ public class AccordDataManager: DataManagerType {
     self.changeCalculator = changeCalculator
   }
   
-  /// Register the new entity.
+  /// Register a new entity for the specified content type.
   ///
   /// - parameters:
   ///   - entity: A entity.
-  public func register<T>(entity: T) where T : AccordableEntity {
-    entitiesQueue.sync {
-      entities[entity.id] = entity
+  ///   - contentType: A content type.
+  public func register<T, C>(entity: T, for contentType: C.Type) -> Completable where T : AccordableEntity, C: AccordableContent {
+    Observable.deferred { () -> Observable<T> in
+      if let remoteProvider = entity.remoteProvider {
+        let remoteObjects: Single<[C]> = remoteProvider.objects()
+        return remoteObjects
+          .flatMapCompletable(entity.dataStorage.syncFromRemote)
+          .andThen(.just(entity))
+      }
+      return .just(entity)
     }
+    .withLatestFrom(entitiesRelay) { (entity, entities) -> [String: AccordableEntity] in
+      var newEntities = entities
+      newEntities[entity.id] = entity
+      return newEntities
+    }
+    .do(onNext: { [entitiesRelay] in
+      entitiesRelay.accept($0)
+    })
+    .ignoreElements()
   }
   
   /// Observe all objects in the specified entity.
@@ -130,22 +152,28 @@ public class AccordDataManager: DataManagerType {
 private extension AccordDataManager {
   /// Get the entity for the passed descriptor.
   ///
+  /// This function will wait for the entity to appear in the entities dictionary,
+  /// assuming that it has been registered or that it'll be registered in the future.
+  /// The Single will never emit if the entity does not exist.
+  ///
   /// - parameters:
   ///   - entityDescriptor: A entity descriptor.
-  /// - returns: A Single that emits the correct entity or an error if the entity is not known.
+  /// - returns: A Single that emits the correct entity or nothing if the entity does not exist.
   func entity(forEntityDescriptor entityDescriptor: AccordableEntityDescriptor) -> Single<AccordableEntity> {
-    Single.deferred { [weak self] in
-      guard let self = self else { return .error(Errors.deallocatedInstance) }
-      if let entity = self.entities[entityDescriptor.id] {
+    entitiesRelay
+      .subscribeOn(entitiesScheduler)
+      .observeOn(entitiesScheduler)
+      .filter { $0.keys.contains(entityDescriptor.id) }
+      .take(1)
+      .map { $0[entityDescriptor.id]! }
+      .flatMap { entity -> Single<AccordableEntity> in
         var single = Single.just(entity)
         if let scheduler = entity.scheduler {
           single = single.observeOn(scheduler)
         }
         return single
       }
-      return .error(Errors.unknownEntity)
-    }
-    .subscribeOn(entitiesScheduler)
+      .asSingle()
   }
   
   /// Get the appropriate action for the passed action on the specified entity.
