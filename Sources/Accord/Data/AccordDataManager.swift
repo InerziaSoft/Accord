@@ -75,6 +75,8 @@ public class AccordDataManager: DataManagerType {
       }
       return .just(entity)
     }
+    .subscribeOn(entitiesScheduler)
+    .observeOn(entitiesScheduler)
     .withLatestFrom(entitiesRelay) { (entity, entities) -> [String: AccordableEntity] in
       var newEntities = entities
       newEntities[entity.id] = entity
