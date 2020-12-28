@@ -9,6 +9,6 @@ import Foundation
 
 public protocol RunnableFactoryType {
   
-  func make(fromRepresentation representation: RunnableRepresentation) -> Runnable
+  func make(fromRepresentation representation: RunnableRepresentation) -> Runnable?
   
 }

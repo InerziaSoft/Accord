@@ -81,7 +81,7 @@ private extension FileSchedulerStorage {
   
   func read() throws -> [Runnable] {
     try readRaw()
-      .map { [runnableFactory] in runnableFactory.make(fromRepresentation: $0) }
+      .compactMap { [runnableFactory] in runnableFactory.make(fromRepresentation: $0) }
   }
   
   func makeStorageDictionary(items: [RunnableRepresentation]) -> [String: Any] {
