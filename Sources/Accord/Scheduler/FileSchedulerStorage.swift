@@ -97,7 +97,11 @@ private extension FileSchedulerStorage {
   }
   
   func write(items: [RunnableRepresentation]) throws {
-    (makeStorageDictionary(items: items) as NSDictionary)
-      .write(toFile: fileURL.path, atomically: true)
+    let dictionary = (makeStorageDictionary(items: items) as NSDictionary)
+    if #available(OSX 10.13, *) {
+      try dictionary.write(to: fileURL)
+    } else {
+      dictionary.write(to: fileURL, atomically: true)
+    }
   }
 }
