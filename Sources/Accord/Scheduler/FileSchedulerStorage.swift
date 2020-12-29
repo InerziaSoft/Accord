@@ -62,6 +62,10 @@ public class FileSchedulerStorage: SchedulerStorageType {
 
 private extension FileSchedulerStorage {
   func readRaw() throws -> [RunnableRepresentation] {
+    if !FileManager.default.fileExists(atPath: fileURL.path) {
+      try write(items: [])
+    }
+    
     guard
       let file = NSDictionary(contentsOfFile: fileURL.path) as? [String: Any],
       let versionString = file[StorageKey.version.rawValue] as? String,
