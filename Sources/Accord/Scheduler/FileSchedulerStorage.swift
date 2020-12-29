@@ -94,7 +94,7 @@ private extension FileSchedulerStorage {
     return [
       StorageKey.items.rawValue: items,
       StorageKey.lastSavedDate.rawValue: Date(),
-      StorageKey.version.rawValue: Self.storageVersion
+      StorageKey.version.rawValue: Self.storageVersion.rawValue
     ]
   }
   
