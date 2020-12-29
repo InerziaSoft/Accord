@@ -67,7 +67,9 @@ private extension FileSchedulerStorage {
     }
     
     guard
-      let file = NSDictionary(contentsOfFile: fileURL.path) as? [String: Any],
+      let content = FileManager.default.contents(atPath: fileURL.path),
+      let propertyList = try? PropertyListSerialization.propertyList(from: content, options: .init(), format: nil),
+      let file = propertyList as? [String: Any],
       let versionString = file[StorageKey.version.rawValue] as? String,
       let version = StorageVersion(rawValue: versionString),
       let items = file[StorageKey.items.rawValue] as? [[String: Any]]
@@ -97,11 +99,10 @@ private extension FileSchedulerStorage {
   }
   
   func write(items: [RunnableRepresentation]) throws {
-    let dictionary = (makeStorageDictionary(items: items) as NSDictionary)
-    if #available(OSX 10.13, *) {
-      try dictionary.write(to: fileURL)
-    } else {
-      dictionary.write(to: fileURL, atomically: true)
-    }
+    try PropertyListSerialization.data(
+      fromPropertyList: makeStorageDictionary(items: items),
+      format: .xml,
+      options: .zero
+    ).write(to: fileURL)
   }
 }
