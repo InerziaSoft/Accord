@@ -201,15 +201,15 @@ private extension AccordDataManager {
   /// - returns: A Completable to observe.
   func action<T: AccordableContent>(_ action: DataAction, onEntity entity: AccordableEntity, withContent object: T) -> Completable {
     Completable.deferred {
-      var action = entity.dataStorage.perform(action: action, withContent: object)
+      var entityAction = entity.dataStorage.perform(action: action, withContent: object)
       
-      if let remoteProviderAction = entity.remoteProvider?.performAction(withContent: object, action: .insert) {
-        action = action.andThen(remoteProviderAction)
+      if let remoteProviderAction = entity.remoteProvider?.performAction(withContent: object, action: action) {
+        entityAction = entityAction.andThen(remoteProviderAction)
           .do(onSuccess: { [weak self] in self?.scheduler.schedule(runnable: $0) })
           .asCompletable()
       }
       
-      return action
+      return entityAction
     }
   }
   
