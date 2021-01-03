@@ -81,6 +81,7 @@ public class AccordDataManager: DataManagerType {
                 .toObservable(fromError: error, onScheduler: entity.scheduler ?? MainScheduler.instance)
             }
           }
+          .catchError { _ in Completable.empty() }
           .andThen(.just(entity))
       }
       return .just(entity)
