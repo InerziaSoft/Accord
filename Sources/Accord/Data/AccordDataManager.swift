@@ -48,6 +48,9 @@ public class AccordDataManager: DataManagerType {
   /// Get the runnables scheduler.
   let scheduler: RunnablesScheduler
   
+  /// Get the retry policy evaluator.
+  let retryPolicyEvaluator: RetryPolicyEvaluator
+  
   /// Get the change calculator.
   let changeCalculator: ChangeCalculator
   
@@ -55,9 +58,10 @@ public class AccordDataManager: DataManagerType {
   ///
   /// - parameters:
   ///   - scheduler: A scheduler.
-  public init(scheduler: RunnablesScheduler, changeCalculator: ChangeCalculator) {
+  public init(scheduler: RunnablesScheduler, changeCalculator: ChangeCalculator, retryPolicyEvaluator: RetryPolicyEvaluator) {
     self.scheduler = scheduler
     self.changeCalculator = changeCalculator
+    self.retryPolicyEvaluator = retryPolicyEvaluator
   }
   
   /// Register a new entity for the specified content type.
@@ -66,11 +70,17 @@ public class AccordDataManager: DataManagerType {
   ///   - entity: A entity.
   ///   - contentType: A content type.
   public func register<T, C>(entity: T, for contentType: C.Type) -> Completable where T : AccordableEntity, C: AccordableContent {
-    Observable.deferred { () -> Observable<T> in
+    Observable.deferred { [retryPolicyEvaluator] () -> Observable<T> in
       if let remoteProvider = entity.remoteProvider {
         let remoteObjects: Single<[C]> = remoteProvider.objects()
         return remoteObjects
           .flatMapCompletable(entity.dataStorage.syncFromRemote)
+          .retryWhen { (errors: Observable<Error>) in
+            errors.enumerated().flatMap { attempt, error -> Observable<Void> in
+              retryPolicyEvaluator.evaluate(error: error, attempt: attempt)
+                .toObservable(fromError: error, onScheduler: entity.scheduler ?? MainScheduler.instance)
+            }
+          }
           .andThen(.just(entity))
       }
       return .just(entity)

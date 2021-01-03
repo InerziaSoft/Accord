@@ -15,9 +15,10 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     
     // WHEN
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     // THEN
     XCTAssertNotNil(dataManager.scheduler)
@@ -27,8 +28,9 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     let entity = EntityMock(dataStorage: LocalStorageMock(), remoteProvider: RemoteProviderMock())
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     // WHEN
     _ = try! dataManager.register(entity: entity, for: ContentMock.self).toBlocking().first()
@@ -41,10 +43,11 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     let localStorage = LocalStorageMock()
     let remoteProvider = RemoteProviderMock()
     let entity = EntityMock(dataStorage: localStorage, remoteProvider: remoteProvider)
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     let expectation = XCTestExpectation(description: "New Objects")
     
@@ -103,10 +106,11 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     let localStorage = LocalStorageMock()
     let remoteProvider = RemoteProviderMock()
     let entity = EntityMock(dataStorage: localStorage, remoteProvider: remoteProvider)
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     let expectation = XCTestExpectation(description: "Insert New Object")
     
@@ -130,10 +134,11 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     let localStorage = LocalStorageMock()
     let remoteProvider = RemoteProviderMock()
     let entity = EntityMock(dataStorage: localStorage, remoteProvider: remoteProvider)
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     let expectationInsert = XCTestExpectation(description: "Insert New Object")
     let expectationUpdate = XCTestExpectation(description: "Update Object")
@@ -164,10 +169,11 @@ final class AccordDataManagerTests: XCTestCase {
     // GIVEN
     let scheduler = StaticRunnablesMock()
     let calculator = ChangeCalculatorMock()
+    let retryPolicyEvaluator = RetryPolicyEvaluatorMock()
     let localStorage = LocalStorageMock()
     let remoteProvider = RemoteProviderMock()
     let entity = EntityMock(dataStorage: localStorage, remoteProvider: remoteProvider)
-    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator)
+    let dataManager = AccordDataManager(scheduler: scheduler, changeCalculator: calculator, retryPolicyEvaluator: retryPolicyEvaluator)
     
     let expectationInsert = XCTestExpectation(description: "Insert New Object")
     let expectationRemove = XCTestExpectation(description: "Delete Object")
