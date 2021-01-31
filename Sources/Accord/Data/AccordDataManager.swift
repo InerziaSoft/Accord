@@ -177,6 +177,7 @@ private extension AccordDataManager {
       .subscribeOn(entitiesScheduler)
       .observeOn(entitiesScheduler)
       .filter { $0.keys.contains(entityDescriptor.id) }
+      .timeout(.seconds(30), scheduler: MainScheduler.instance)
       .take(1)
       .map { $0[entityDescriptor.id]! }
       .flatMap { entity -> Single<AccordableEntity> in
@@ -185,6 +186,9 @@ private extension AccordDataManager {
           single = single.observeOn(scheduler)
         }
         return single
+      }
+      .catchError { _ in
+        .error(Errors.unknownEntity)
       }
       .asSingle()
   }
