@@ -48,6 +48,9 @@ public class AccordDataManager: DataManagerType {
   /// Get the runnables scheduler.
   let scheduler: RunnablesScheduler
   
+  /// Get the internal dispose bag.
+  private let disposeBag = DisposeBag()
+  
   /// Get the retry policy evaluator.
   let retryPolicyEvaluator: RetryPolicyEvaluator
   
@@ -66,37 +69,60 @@ public class AccordDataManager: DataManagerType {
   
   /// Register a new entity for the specified content type.
   ///
+  /// After the entity has been registered, this function will immediately call
+  /// `runSyncFromRemote` to make sure that the latest data gets fetched from
+  /// the remote (if any).
+  ///
   /// - parameters:
   ///   - entity: A entity.
   ///   - contentType: A content type.
+  /// - returns: A Completable to observe.
   public func register<T, C>(entity: T, for contentType: C.Type) -> Completable where T : AccordableEntity, C: AccordableContent {
-    Observable.deferred { [retryPolicyEvaluator] () -> Observable<T> in
-      if let remoteProvider = entity.remoteProvider {
-        let remoteObjects: Single<[C]> = remoteProvider.objects()
-        return remoteObjects
-          .flatMapCompletable(entity.dataStorage.syncFromRemote)
-          .retryWhen { (errors: Observable<Error>) in
-            errors.enumerated().flatMap { attempt, error -> Observable<Void> in
-              retryPolicyEvaluator.evaluate(error: error, attempt: attempt)
-                .toObservable(fromError: error, onScheduler: entity.scheduler ?? MainScheduler.instance)
-            }
-          }
-          .catchError { _ in Completable.empty() }
-          .andThen(.just(entity))
+    Observable.just(entity)
+      .subscribeOn(entitiesScheduler)
+      .observeOn(entitiesScheduler)
+      .withLatestFrom(entitiesRelay) { (entity, entities) -> [String: AccordableEntity] in
+        var newEntities = entities
+        newEntities[entity.id] = entity
+        return newEntities
       }
-      return .just(entity)
-    }
-    .subscribeOn(entitiesScheduler)
-    .observeOn(entitiesScheduler)
-    .withLatestFrom(entitiesRelay) { (entity, entities) -> [String: AccordableEntity] in
-      var newEntities = entities
-      newEntities[entity.id] = entity
-      return newEntities
-    }
-    .do(onNext: { [entitiesRelay] in
-      entitiesRelay.accept($0)
-    })
-    .ignoreElements()
+      .do(onNext: { [entitiesRelay] in
+        entitiesRelay.accept($0)
+      }, afterNext: { [weak self] _ in
+        self?.runSyncFromRemote(entity: entity, withObjectsOfType: contentType)
+      })
+      .ignoreElements()
+  }
+  
+  /// Fetch all data from the remote of the specified entity.
+  ///
+  /// This operation is a fire-and-forget type: you don't have to wait for it and it will happen
+  /// at some point in the future, depending on whether the Internet connection and the remote
+  /// are available or not.
+  /// If there are relevant changes,  you will get notifications on any subscribed observer.
+  ///
+  /// This function is called automatically after registering a new entity.
+  ///
+  /// Calling this function on a local-only entity will have no effect.
+  ///
+  /// - parameters:
+  ///   - entity: A entity.
+  ///   - contentType: A content type.
+  func runSyncFromRemote<T, C>(entity: T, withObjectsOfType contentType: C.Type) where T : AccordableEntity, C: AccordableContent {
+    guard let remoteProvider = entity.remoteProvider else { return }
+    
+    let remoteObjects: Single<[C]> = remoteProvider.objects()
+    remoteObjects
+      .flatMapCompletable(entity.dataStorage.syncFromRemote)
+      .retryWhen { [retryPolicyEvaluator] (errors: Observable<Error>) in
+        errors.enumerated().flatMap { attempt, error -> Observable<Void> in
+          retryPolicyEvaluator.evaluate(error: error, attempt: attempt)
+            .toObservable(fromError: error, onScheduler: entity.scheduler ?? MainScheduler.instance)
+        }
+      }
+      .catchError { _ in Completable.empty() }
+      .subscribe()
+      .disposed(by: disposeBag)
   }
   
   /// Observe all objects in the specified entity.
